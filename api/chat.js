@@ -5,8 +5,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   if (req.method === 'GET') {
-    const hasKey = !!process.env.GEMINI_API_KEY;
-    return res.status(200).json({ status: 'ok', gemini_key_set: hasKey });
+    return res.status(200).json({ status: 'ok', gemini_key_set: !!process.env.GEMINI_API_KEY });
   }
 
   try {
@@ -22,13 +21,16 @@ export default async function handler(req, res) {
     }));
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: system || '' }] },
-          contents,
+          contents: [
+            { role: 'user', parts: [{ text: 'System instructions: ' + (system || '') }] },
+            { role: 'model', parts: [{ text: 'Understood. I will follow these instructions.' }] },
+            ...contents
+          ],
           generationConfig: { maxOutputTokens: 1000, temperature: 0.8 }
         })
       }
