@@ -1124,45 +1124,43 @@ async function sendMessage() {
   appendMessage('assistant', '', true);
 
   try {
-    // Main response
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: SYSTEM_PROMPTS[mode],
-        messages: history,
-      })
-    });
+  const res = await fetch('http://localhost:3000/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: text })
+  });
 
-    const data = await res.json();
-    const typing = document.getElementById('typing-wrap');
-    if (typing) typing.remove();
-
-    if (data.error) throw new Error(data.error);
-
-    const reply = data.text || '';
-    history.push({ role: 'assistant', content: reply });
-    appendMessage('assistant', reply);
-
-    // Advance stage every 3 messages
-    if (msgCount % 3 === 0) advanceStage();
-
-    // Extract scores from a secondary lightweight call
-    extractScores(text + '\n\n' + reply);
-
-  } catch (err) {
-    const typing = document.getElementById('typing-wrap');
-    if (typing) typing.remove();
-    const msgs = document.getElementById('messages');
-    const errDiv = document.createElement('div');
-    errDiv.style.cssText = 'font-family:var(--font-mono);font-size:0.7rem;color:var(--red);text-align:center;padding:8px;letter-spacing:0.1em;';
-    errDiv.textContent = '⚠ CONNECTION FAILED — CHECK API KEY OR RETRY';
-    msgs.appendChild(errDiv);
-    msgs.scrollTop = msgs.scrollHeight;
-    console.error(err);
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
   }
+
+  const data = await res.json();
+  console.log("API RESPONSE:", data);
+
+  const typing = document.getElementById('typing-wrap');
+  if (typing) typing.remove();
+
+  if (data.error) throw new Error(data.error);
+
+  const reply = data.reply;
+  history.push({ role: 'assistant', content: reply });
+  appendMessage('assistant', reply);
+
+  if (msgCount % 3 === 0) advanceStage();
+
+  extractScores(text + '\n\n' + reply);
+
+} catch (err) {
+  const typing = document.getElementById('typing-wrap');
+  if (typing) typing.remove();
+  const msgs = document.getElementById('messages');
+  const errDiv = document.createElement('div');
+  errDiv.style.cssText = 'font-family:var(--font-mono);font-size:0.7rem;color:var(--red);text-align:center;padding:8px;letter-spacing:0.1em;';
+  errDiv.textContent = '⚠ CONNECTION FAILED — CHECK API KEY OR RETRY';
+  msgs.appendChild(errDiv);
+  msgs.scrollTop = msgs.scrollHeight;
+  console.error(err);
+}
 
   isLoading = false;
   document.getElementById('send-btn').disabled = false;
@@ -1172,7 +1170,7 @@ async function sendMessage() {
 // ── Extract scores asynchronously ──
 async function extractScores(context) {
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch('http://localhost:3000/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1183,7 +1181,7 @@ async function extractScores(context) {
       })
     });
     const data = await res.json();
-    const raw = data.text || '{}';
+    const raw = data.content?.[0]?.text || '{}';
     const clean = raw.replace(/```json|```/g, '').trim();
     const scores = JSON.parse(clean);
     updateScores(scores);
