@@ -1140,9 +1140,9 @@ async function sendMessage() {
     const typing = document.getElementById('typing-wrap');
     if (typing) typing.remove();
 
-    if (data.error) throw new Error(data.error.message);
+    if (data.error) throw new Error(data.error);
 
-    const reply = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const reply = data.text || '';
     history.push({ role: 'assistant', content: reply });
     appendMessage('assistant', reply);
 
@@ -1183,7 +1183,7 @@ async function extractScores(context) {
       })
     });
     const data = await res.json();
-    const raw = data.content?.[0]?.text || '{}';
+    const raw = data.text || '{}';
     const clean = raw.replace(/```json|```/g, '').trim();
     const scores = JSON.parse(clean);
     updateScores(scores);
